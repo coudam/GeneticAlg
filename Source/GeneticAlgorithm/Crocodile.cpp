@@ -21,7 +21,6 @@ void ACrocodile::BeginPlay()
 void ACrocodile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
 // Called to bind functionality to input
@@ -34,23 +33,24 @@ void ACrocodile::Step(float DeltaTime)
 {
 	if (isDead) return;
 
-	DrawDebugLine(GetWorld(), FVector(position, 50), FVector(position + directionVector * 300, 50), FColor::Blue, false, -1, 0, 10);
+	//DrawDebugLine(GetWorld(), FVector(position, 50), FVector(position + directionVector * 300, 50), FColor::Blue, false, -1, 0, 10);
 
 	//DrawDebugCircle(GetWorld(), FVector(position, 70), stats.Vision, 50, FColor::Blue, false, -1, 0, 10);
 
 	DrawDebugLine(GetWorld(), FVector(position - FVector2D(0, 50), 220), FVector(position + FVector2D(0, Energy - 50), 220), FColor::Green, false, -1, 0, 20);
 	DrawDebugLine(GetWorld(), FVector(position - FVector2D(0, 50), 200), FVector(position + FVector2D(0, 50), 200), FColor::Red, false, -1, 0, 20);
 
-
 	auto newDirection = Direction();
-	if (Target == CROCODILE && FVector2D::Distance(position, CrocTarget->position) < 10) {
+	if (Target == CROCODILE && FVector2D::Distance(position, CrocTarget->position) < 30) {
 		Energy -= 10;
 		if (CrocTarget->Hit())
-			Energy += 60;
-	} else if (Target == DONAT && FVector2D::Distance(position, DonatTarget->position) < 10) {
+			Energy += 70;
+	} else if (Target == DONAT && FVector2D::Distance(position, DonatTarget->position) < 30) {
 		Energy += 20;
 		DonatTarget->Eat();
 	}
+	if (Energy > 100)
+		Energy = 100;
 
 	directionVector = newDirection;
 	auto position_t = position + directionVector * DeltaTime * stats.MoveSpead;
@@ -64,16 +64,14 @@ void ACrocodile::Step(float DeltaTime)
 	position = position_t;
 
 	SetActorLocation(FVector(position, 70.f));
-	Energy -= stats.Vision * 0.00005 + stats.MoveSpead * 0.00005;
+	Energy -= stats.Vision * 0.0001 + stats.MoveSpead * 0.0001;
 	if (Energy <= 0) {
 		Dead();
 	}
 }
 
-void ACrocodile::Spawn(std::vector<ACrocodile*>& crocs, std::vector<AFood*>& food_)
+void ACrocodile::Spawn()
 {
-	enemies = &crocs;
-	food = &food_;
 	isDead = false;
 
 	SetActorHiddenInGame(false);
@@ -82,17 +80,27 @@ void ACrocodile::Spawn(std::vector<ACrocodile*>& crocs, std::vector<AFood*>& foo
 	position = FVector2D(cos(rand_f) * rand_r, sin(rand_f) * rand_r);
 	SetActorLocation(FVector(position, 70.f));
 
+	SetActorRotation(FRotator(0,0,0));
 	FVector2D t = FVector2D(rand() % 100 - 50, rand() % 100 - 50);
+	t.Normalize();
 	directionVector = FVector2D(0, 1);
+	directionVector.Normalize();
 	Turn(t);
 	directionVector = t;
-	directionVector.Normalize();
+}
+
+void ACrocodile::Spawn(std::vector<ACrocodile*>& crocs, std::vector<AFood*>& food_)
+{
+	enemies = &crocs;
+	food = &food_;
+
+	Spawn();
 }
 
 void ACrocodile::RandomStart()
 {
-	stats.Vision      = 200  + rand() % 3000 / 10.f;
-	stats.MoveSpead   = 200  + rand() % 2000 / 10.f;
+	stats.Vision      = 200  + rand() % 5000 / 10.f;
+	stats.MoveSpead   = 400  + rand() % 2000 / 10.f;
 	stats.Aggression  = 0    + rand() % 1000 / 10.f;
 	stats.Vegie       = 0    + rand() % 1000 / 10.f;
 	stats.Carnivorous = 0    + rand() % 1000 / 10.f;
@@ -144,7 +152,11 @@ FVector2D ACrocodile::Direction()
 		Target = DONAT;
 	} else if (!visibleAnimy.empty()) {
 	
-		direction_ = (visibleAnimy[0].first->position - position)*-1.f;
+		for (int i = 0; i < visibleAnimy.size(); ++i) {
+			direction_ += (visibleAnimy[i].first->position - position) * -1.f;
+		}
+		direction_ /= visibleAnimy.size();
+
 		Target = CROCODILE;
 	}
 
@@ -153,11 +165,11 @@ FVector2D ACrocodile::Direction()
 	else if (Target == DONAT)
 		DonatTarget = visibleFood[0].first;
 	
+	DrawDebugLine(GetWorld(), FVector(position, 50), FVector(position + direction_, 50), FColor::Red, false, -1, 0, 10);
+
+	direction_.Normalize();
 	Turn(direction_);
 	
-	DrawDebugLine(GetWorld(), FVector(position, 50), FVector(position + direction_, 50), FColor::Red, false, -1, 0, 10);
-	
-	direction_.Normalize();
 	return direction_;
 }
 
@@ -167,7 +179,7 @@ void ACrocodile::Turn(const FVector2D& target)
 	float angle; FVector a;
 	FQuat::FindBetweenNormals(FVector(target, 0.f), FVector(directionVector, 0.f)).ToAxisAndAngle(a, angle);
 	angle = FMath::RadiansToDegrees(angle) * a.Z;
-	AddActorLocalRotation(FRotator(0, angle, 0));
+	AddActorLocalRotation(FRotator(0, -angle, 0));
 }
 
 bool ACrocodile::Hit()
@@ -183,3 +195,13 @@ void ACrocodile::Dead()
 	isDead = true;
 	SetActorHiddenInGame(true);
 }
+
+void ACrocodile::CrossoverStats(ACrocodile* first, ACrocodile* second)
+{
+	stats = {rand() % 2 == 0 ? first->stats.Vision : second->stats.Vision,
+			 rand() % 2 == 0 ? first->stats.MoveSpead : second->stats.MoveSpead,
+			 rand() % 2 == 0 ? first->stats.Aggression : second->stats.Aggression,
+			 rand() % 2 == 0 ? first->stats.Vegie : second->stats.Vegie,
+			 rand() % 2 == 0 ? first->stats.Carnivorous : second->stats.Carnivorous,
+	};
+} 

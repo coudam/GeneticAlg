@@ -55,10 +55,23 @@ public:
 	
 	void Step(float DeltaTime);
 	void Spawn(std::vector<ACrocodile*>& crocs, std::vector<AFood*>& food_);
+	void Spawn();
 	void RandomStart();
 	bool Hit();
 	void Dead();
-	void crossover(ACrocodile* first, ACrocodile* second);
+	void CrossoverStats(ACrocodile* first, ACrocodile* second);
+	static void crossover(ACrocodile* first, ACrocodile* second, std::vector<ACrocodile*>::iterator& getZoo, std::vector<ACrocodile*>& Zoo)
+	{
+		for (int i = 0; i < 4; ++i) {
+			auto newCroc = *getZoo;
+			getZoo++;
+			
+			newCroc->CrossoverStats(first, second);
+			Zoo.push_back(newCroc);
+		}
+		return;
+	}
+
 	FVector2D Direction();
 private:
 	void Turn(const FVector2D& target);

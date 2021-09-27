@@ -24,8 +24,8 @@ void ABraveWorld::BeginPlay()
 {
 	Super::BeginPlay();
 
-	for (int i = 0; i < Population * 3; ++i) {
-		float rand_r = std::rand() % 5000;
+	for (int i = 0; i < Population * Generations; ++i) {
+		float rand_r = std::rand() % 4000;
 		float rand_f = std::rand() * 6.282f;
 		FVector Location(cos(rand_f) * rand_r, sin(rand_f) * rand_r, 70.f);
 		FRotator Rotation(0, 0, 0);
@@ -34,7 +34,7 @@ void ABraveWorld::BeginPlay()
 	}
 
 	for (int i = 0; i < Population * 3; ++i) {
-		float rand_r = std::rand() % 5000;
+		float rand_r = std::rand() % 4000;
 		float rand_f = std::rand() * 6.282f;
 		FVector Location(cos(rand_f) * rand_r, sin(rand_f) * rand_r, 20.f);
 		FRotator Rotation(0.f, 0.f, 0.f);
@@ -59,7 +59,7 @@ void ABraveWorld::Tick(float DeltaTime)
 	if (generation.isRuning()) {
 		generation.step(DeltaTime);
 	} else {
-		//generation.newGeneration();
+		generation.newGeneration();
 	}
 }
 
@@ -74,7 +74,8 @@ void ABraveWorld::Run::init(ABraveWorld* ctx_)
 	ZooGet = ctx->Zoo.begin();
 	FridgeGet = ctx->Fridge.begin();
 	for (int i = 0; i < ctx->Population; ++i) {
-		Crocodiles.push_back(*++ZooGet);
+		Crocodiles.push_back(*ZooGet);
+		++ZooGet;
 		Crocodiles.back()->Spawn(Crocodiles, Food);
 		Crocodiles.back()->RandomStart();
 
@@ -127,8 +128,14 @@ void ABraveWorld::Run::crossover()
 		auto secondCroc = *second;
 		Crocodiles.erase(second);
 
-		//ACrocodile::crossover(first, second);
+		ACrocodile::crossover(firstCroc, secondCroc, ZooGet, newGen);
+		firstCroc->Dead();
+		secondCroc->Dead();
 	}
+	
+	Crocodiles.insert(Crocodiles.end(), std::make_move_iterator(newGen.begin()),
+		std::make_move_iterator(newGen.end()));
+
 }
 
 void ABraveWorld::Run::mutation()
@@ -138,6 +145,12 @@ void ABraveWorld::Run::mutation()
 
 bool ABraveWorld::Run::isRuning()
 {
+	for (auto it = Crocodiles.end()-1; it != Crocodiles.begin(); --it) {
+		if ((*it)->isDead) {
+			Crocodiles.erase(it);
+		}
+	}
+	
 	if (Crocodiles.size() <= ctx->Population * 0.5) {
 		return false;
 	}
@@ -150,11 +163,18 @@ void ABraveWorld::Run::step(float DeltaTime)
 		croc->Step(DeltaTime);
 	}
 }
-
+static int gen_num = 0;
 void ABraveWorld::Run::newGeneration()
 {
+	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString::Printf(TEXT("Generation num = %d"), ++gen_num));
+	for (auto croc : Crocodiles)
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString::Printf(TEXT("Vision : %f | Move spead : %f | Aggression : %f | Vegie : %f | Carniorous : %f |"), croc->stats.Vision, croc->stats.MoveSpead, croc->stats.Aggression, croc->stats.Vegie, croc->stats.Carnivorous));
+
 	crossover();
 	mutation();
+	for (auto croc : Crocodiles) {
+		croc->Spawn(Crocodiles, Food);
+	}
 }
 
 std::vector<ACrocodile*>* ABraveWorld::getCroco()
