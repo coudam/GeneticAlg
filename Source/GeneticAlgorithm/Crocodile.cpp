@@ -42,9 +42,9 @@ void ACrocodile::Step(float DeltaTime)
 
 	auto newDirection = Direction();
 	if (Target == CROCODILE && FVector2D::Distance(position, CrocTarget->position) < 30) {
-		Energy -= 10;
+		Energy -= 5;
 		if (CrocTarget->Hit())
-			Energy += 70;
+			Energy += 100;
 	} else if (Target == DONAT && FVector2D::Distance(position, DonatTarget->position) < 30) {
 		Energy += 20;
 		DonatTarget->Eat();
@@ -64,7 +64,7 @@ void ACrocodile::Step(float DeltaTime)
 	position = position_t;
 
 	SetActorLocation(FVector(position, 70.f));
-	Energy -= stats.Vision * 0.0001 + stats.MoveSpead * 0.0001;
+	Energy -= stats.Vision * 0.0007 + stats.MoveSpead * 0.00035;
 	if (Energy <= 0) {
 		Dead();
 	}
@@ -99,7 +99,7 @@ void ACrocodile::Spawn(std::vector<ACrocodile*>& crocs, std::vector<AFood*>& foo
 
 void ACrocodile::RandomStart()
 {
-	stats.Vision      = 200  + rand() % 5000 / 10.f;
+	stats.Vision      = 400  + rand() % 5000 / 10.f;
 	stats.MoveSpead   = 400  + rand() % 2000 / 10.f;
 	stats.Aggression  = 0    + rand() % 1000 / 10.f;
 	stats.Vegie       = 0    + rand() % 1000 / 10.f;
@@ -205,3 +205,14 @@ void ACrocodile::CrossoverStats(ACrocodile* first, ACrocodile* second)
 			 rand() % 2 == 0 ? first->stats.Carnivorous : second->stats.Carnivorous,
 	};
 } 
+
+void ACrocodile::mutation()
+{
+	stats = {rand() % 5 != 0 ? stats.Vision : 400 + rand() % 5000 / 10.f,
+			 rand() % 5 != 0 ? stats.MoveSpead : 400 + rand() % 2000 / 10.f,
+			 rand() % 5 != 0 ? stats.Aggression : 0 + rand() % 1000 / 10.f,
+			 rand() % 5 != 0 ? stats.Vegie : 0 + rand() % 1000 / 10.f,
+			 rand() % 5 != 0 ? stats.Carnivorous : 0 + rand() % 1000 / 10.f,
+	};
+}
+

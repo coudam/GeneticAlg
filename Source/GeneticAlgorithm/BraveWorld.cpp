@@ -2,6 +2,7 @@
 
 
 #include "BraveWorld.h"
+static int gen_num = 0;
 
 // Sets default values
 ABraveWorld::ABraveWorld()
@@ -24,7 +25,7 @@ void ABraveWorld::BeginPlay()
 {
 	Super::BeginPlay();
 
-	for (int i = 0; i < Population * Generations; ++i) {
+	for (int i = 0; i < Population * Generations + 1; ++i) {
 		float rand_r = std::rand() % 4000;
 		float rand_f = std::rand() * 6.282f;
 		FVector Location(cos(rand_f) * rand_r, sin(rand_f) * rand_r, 70.f);
@@ -48,6 +49,9 @@ void ABraveWorld::BeginPlay()
 // Called every frame
 void ABraveWorld::Tick(float DeltaTime)
 {
+	if (gen_num >= Generations) {
+		return;
+	}
 
 	DrawDebugLine(GetWorld(), FVector(-4000, -4000, 30), FVector(-4000, 4000, 30), FColor::Red, true, -1, 0, 10);
 	DrawDebugLine(GetWorld(), FVector(-4000, 4000, 30), FVector(4000, 4000, 30), FColor::Red, true, -1, 0, 10);
@@ -140,7 +144,9 @@ void ABraveWorld::Run::crossover()
 
 void ABraveWorld::Run::mutation()
 {
-
+	for (auto croc : Crocodiles) {
+		croc->mutation();
+	}
 }
 
 bool ABraveWorld::Run::isRuning()
@@ -163,12 +169,16 @@ void ABraveWorld::Run::step(float DeltaTime)
 		croc->Step(DeltaTime);
 	}
 }
-static int gen_num = 0;
+
 void ABraveWorld::Run::newGeneration()
 {
 	GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString::Printf(TEXT("Generation num = %d"), ++gen_num));
 	for (auto croc : Crocodiles)
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString::Printf(TEXT("Vision : %f | Move spead : %f | Aggression : %f | Vegie : %f | Carniorous : %f |"), croc->stats.Vision, croc->stats.MoveSpead, croc->stats.Aggression, croc->stats.Vegie, croc->stats.Carnivorous));
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString::Printf(TEXT("Vision : %f | Move spead : %f | Aggression : %f | Vegie : %f |"), croc->stats.Vision, croc->stats.MoveSpead, croc->stats.Aggression, croc->stats.Vegie));
+
+	UE_LOG(LogTemp, Warning, TEXT("Generation num = %d"), gen_num);
+	for (auto croc : Crocodiles)
+		UE_LOG(LogTemp, Warning, TEXT("Vision : %f | Move spead : %f | Aggression : %f | Vegie : %f |"), croc->stats.Vision, croc->stats.MoveSpead, croc->stats.Aggression, croc->stats.Vegie);
 
 	crossover();
 	mutation();

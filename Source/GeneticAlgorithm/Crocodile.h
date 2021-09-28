@@ -60,6 +60,7 @@ public:
 	bool Hit();
 	void Dead();
 	void CrossoverStats(ACrocodile* first, ACrocodile* second);
+	void mutation();
 	static void crossover(ACrocodile* first, ACrocodile* second, std::vector<ACrocodile*>::iterator& getZoo, std::vector<ACrocodile*>& Zoo)
 	{
 		for (int i = 0; i < 4; ++i) {
